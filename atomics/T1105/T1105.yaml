@@ -335,24 +335,17 @@ atomic_tests:
       del #{local_path} >nul 2>&1
       del %temp%\MpCmdRun.log >nul 2>&1
     name: command_prompt
-- name: wscript execute js to download 
-  auto_generated_guid: dd3b61dd-7bbc-48cd-ab51-49ad1a776df0
+- name: Download a file using wscript 
   description: |
-    Use certutil -urlcache argument to download a file from the web. Note - /urlcache also works!
+    Use wscript to run a vbs file to download a remote file
   supported_platforms:
   - windows
   input_arguments:
-    remote_file:
-      description: URL of file to copy
-      type: Url
-      default: https://raw.githubusercontent.com/redcanaryco/atomic-red-team/master/LICENSE.txt
-    local_path:
-      description: Local path to place file
+    vbscript_file:
+      description: full path to a vbs file that does the download work
       type: Path
-      default: Atomic-license.txt
+      default: PathToAtomicsFolder\T1105\src\T1105-download-file.vbs
   executor:
     command: |
-      cmd /c certutil -urlcache -split -f #{remote_file} #{local_path}
-    cleanup_command: |
-      del #{local_path} >nul 2>&1
+      wscript.exe #{wscript_file}
     name: command_prompt
