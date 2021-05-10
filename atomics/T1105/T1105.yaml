@@ -347,5 +347,19 @@ atomic_tests:
       default: PathToAtomicsFolder\T1105\src\T1105-download-file.vbs
   executor:
     command: |
-      wscript.exe #{wscript_file}
+      wscript.exe #{vbscript_file}
     name: command_prompt
+- name: Download a file using cscript
+  description: |
+    Use cscript to run a vbs file to download a remote file
+  supported_platforms:
+  - windows
+  input_arguments:
+    vbscript_file:
+      description: full path to a vbs file that does the download work
+      type: Path
+      default: PathToAtomicsFolder\T1105\src\T1105-download-file.vbs
+  executor:
+    command: |
+      cscript.exe #{vbscript_file}
+    name: command_prompt    
