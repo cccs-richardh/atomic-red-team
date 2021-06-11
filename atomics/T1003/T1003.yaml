@@ -121,3 +121,6 @@ atomic_tests:
       rdrleakdiag.exe -p $processid -o #{dumpdir} -fullmemdmp -wait 1
       Start-Sleep -Seconds #{waitfordump}
     name: powershell
+    cleanup_command: |
+      Remove-Item #{dumpdir}/*.hlk
+      Remove-Item #{dumpdir}/*.dmp
