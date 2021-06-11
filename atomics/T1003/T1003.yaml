@@ -84,3 +84,40 @@ atomic_tests:
       Remove-Item C:\Windows\System32\NPPSpy.dll -ErrorAction Ignore
     name: powershell
     elevation_required: true
+
+- name: Credential Dumping with rdrleakdiag.exe
+  description: |-
+    Uses the undocumented tool 'rdrleakdiag.exe' to do a full process memory dump. Such
+    a tool can be used to capture credentials from sensitive processes.
+    This test will run a binary, then use the rdrleaddiag tool to dump the memory of that
+    binary.
+    If the test is successful, the binary will have been run AND a *.dmp and *.hlk file will
+    be present in the #{dumpdir} directory.
+    The cleanup command can be used to kill the calculator and cleanup the dump file artifacts.
+  supported_platforms:
+  - windows
+  input_arguments:
+    targetbinary:
+      description: Path to binary that will be run (that will subsequently be dumped).
+      type: Path
+      default: C:\Windows\System32\calc.exe
+    targetbinary-name:
+      description: The name of the binary that was just run (i.e., the name of the application
+        as it appears in Task Manager)
+      type: String
+      default: Calculator
+    dumpdir:
+      description: Path where the process memory dump will be saved.
+      type: path
+      default: PathToAtomicsFolder/T1003/
+    waitfordump:
+      description: number of seconds to wait for the dump, if at all
+      type: Integer
+      default: 70
+  executor:
+    command: |-
+      #{targetbinary}
+      $processid = Get-Process #{targetbinary-name} | Select -Expand Id
+      rdrleakdiag.exe -p $processid -o #{dumpdir} -fullmemdmp -wait 1
+      Start-Sleep -Seconds #{waitfordump}
+    name: powershell
