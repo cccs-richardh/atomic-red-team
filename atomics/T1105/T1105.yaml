@@ -363,3 +363,12 @@ atomic_tests:
     command: |
       cscript.exe #{vbscript_file}
     name: command_prompt    
+- name: Abnormal file download using the LOLBAS Zipfldr tool.
+  description: The detection looks for Zipfldr process create followed by a network connection.
+  supported_platforms:
+  - windows
+  executor:
+    command: rundll32.exe zipfldr.dll,RouteTheCall calc.exe
+    cleanup_command: 
+    name: powershell
+    elevation_required: true
